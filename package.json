@@ -1,0 +1,50 @@
+{
+  "name": "face-recognition-attendance",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A modern web-based attendance system using facial recognition technology",
+  "author": "",
+  "license": "MIT",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.7.0",
+    "@supabase/supabase-js": "^2.49.4",
+    "@types/multer": "^1.4.12",
+    "canvas": "^3.1.0",
+    "encoding": "^0.1.13",
+    "face-api.js": "^0.22.2",
+    "multer": "^1.4.5-lts.2",
+    "next": "^13.5.6",
+    "next-connect": "^1.0.0",
+    "prisma": "^6.7.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "utf-8-validate": "^6.0.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.7",
+    "@types/react": "^18.2.31",
+    "@types/react-dom": "^18.2.14",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.3",
+    "typescript": "^5.2.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "keywords": [
+    "face-recognition",
+    "attendance-system",
+    "nextjs",
+    "face-api.js",
+    "typescript",
+    "supabase"
+  ]
+}

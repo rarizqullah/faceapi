@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { supabase } from '@/utils/supabase';
+import pool from '@/utils/db';
 
 const prisma = new PrismaClient({
   log: ['query', 'info', 'warn', 'error'],
 });
 
 export async function POST(req: Request) {
+  const client = await pool.connect();
+  
   try {
     console.log('Starting registration process...');
     const { name, email, faceData } = await req.json();
@@ -28,8 +30,7 @@ export async function POST(req: Request) {
       );
     }
 
-    console.log('Checking for existing user with email:', email);
-    // Check if user already exists in Prisma
+    // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email }
     });
@@ -42,51 +43,52 @@ export async function POST(req: Request) {
       );
     }
 
-    // First, create user in Prisma
-    console.log('Creating new user with face descriptor length:', faceData.length);
-    const prismaUser = await prisma.user.create({
-      data: {
-        name,
-        email,
-        faceData: JSON.stringify(faceData)
-      }
-    });
+    // Start transaction
+    await client.query('BEGIN');
 
-    // Then, store user data in Supabase
-    const { data: supabaseUser, error: supabaseError } = await supabase
-      .from('users')
-      .insert([
-        {
-          id: prismaUser.id,
+    try {
+      // First, create user in Prisma
+      console.log('Creating new user with face descriptor length:', faceData.length);
+      const prismaUser = await prisma.user.create({
+        data: {
           name,
           email,
-          face_data: faceData, // Supabase will automatically handle JSON serialization
-          created_at: new Date().toISOString()
+          faceData: JSON.stringify(faceData)
         }
+      });
+
+      // Then, insert directly into PostgreSQL
+      const query = `
+        INSERT INTO users (id, name, email, face_data, created_at)
+        VALUES ($1, $2, $3, $4, $5)
+      `;
+      
+      await client.query(query, [
+        prismaUser.id,
+        name,
+        email,
+        JSON.stringify(faceData),
+        new Date().toISOString()
       ]);
 
-    if (supabaseError) {
-      console.error('Error storing user in Supabase:', supabaseError);
-      // Rollback Prisma creation if Supabase fails
-      await prisma.user.delete({
-        where: { id: prismaUser.id }
-      });
-      return NextResponse.json(
-        { error: 'Failed to store user data' },
-        { status: 500 }
-      );
-    }
+      // Commit transaction
+      await client.query('COMMIT');
 
-    console.log('User created successfully:', prismaUser.id);
-    return NextResponse.json({
-      success: true,
-      message: 'User registered successfully',
-      user: {
-        id: prismaUser.id,
-        name: prismaUser.name,
-        email: prismaUser.email
-      }
-    });
+      console.log('User created successfully:', prismaUser.id);
+      return NextResponse.json({
+        success: true,
+        message: 'User registered successfully',
+        user: {
+          id: prismaUser.id,
+          name: prismaUser.name,
+          email: prismaUser.email
+        }
+      });
+    } catch (error) {
+      // Rollback transaction on error
+      await client.query('ROLLBACK');
+      throw error;
+    }
   } catch (error) {
     console.error('Registration error:', error);
     return NextResponse.json(
@@ -98,5 +100,6 @@ export async function POST(req: Request) {
     );
   } finally {
     await prisma.$disconnect();
+    client.release();
   }
 }

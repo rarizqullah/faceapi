@@ -3,9 +3,29 @@
 import React, { useState } from 'react'
 import FaceDetection from '@/components/FaceDetection'
 import RegistrationForm from '@/components/RegistrationForm'
+import { Toast } from '@/components/Toast';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'attendance' | 'register'>('attendance');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean }>({
+    message: '',
+    type: 'success',
+    isVisible: false
+  });
+
+  const handleRegistrationSuccess = () => {
+    setToast({
+      message: 'Registration successful! You can now take attendance.',
+      type: 'success',
+      isVisible: true
+    });
+    setActiveTab('attendance');
+
+    // Hide toast after 5 seconds
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, isVisible: false }));
+    }, 5000);
+  };
 
   return (
     <main className="min-h-screen p-8">
@@ -37,7 +57,20 @@ export default function Home() {
           </div>
         </div>
 
-        {activeTab === 'attendance' ? <FaceDetection /> : <RegistrationForm />}
+        {activeTab === 'attendance' ? (
+          <FaceDetection />
+        ) : (
+          <RegistrationForm onRegistrationSuccess={handleRegistrationSuccess} />
+        )}
+
+        {toast.isVisible && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            isVisible={toast.isVisible}
+            onClose={() => setToast(prev => ({ ...prev, isVisible: false }))}
+          />
+        )}
       </div>
     </main>
   )

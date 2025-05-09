@@ -1,7 +1,11 @@
 import React, { useRef, useState, useEffect } from 'react';
 import * as faceapi from 'face-api.js';
 
-export default function RegistrationForm() {
+interface RegistrationFormProps {
+  onRegistrationSuccess?: () => void;
+}
+
+export default function RegistrationForm({ onRegistrationSuccess }: RegistrationFormProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isModelLoaded, setIsModelLoaded] = useState(false);
@@ -109,12 +113,14 @@ export default function RegistrationForm() {
 
       const data = await response.json();
       if (response.ok) {
-        alert('Registration successful!');
         // Reset form
         setFormData({ name: '', email: '' });
         setIsCaptured(false);
         setCapturedImage(null);
         setFaceDescriptor(null);
+        
+        // Call the success callback
+        onRegistrationSuccess?.();
       } else {
         alert(data.error || 'Registration failed');
       }

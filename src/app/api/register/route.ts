@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { supabase } from '@/utils/supabase';
 
 const prisma = new PrismaClient({
   log: ['query', 'info', 'warn', 'error'],
@@ -19,13 +20,18 @@ export async function POST(req: Request) {
       );
     }
 
+    // Ensure faceData is a valid array that can be converted to Float32Array
+    if (!Array.isArray(faceData) || faceData.length === 0) {
+      return NextResponse.json(
+        { error: 'Invalid face data format' },
+        { status: 400 }
+      );
+    }
+
     console.log('Checking for existing user with email:', email);
-    // Check if user already exists
+    // Check if user already exists in Prisma
     const existingUser = await prisma.user.findUnique({
       where: { email }
-    }).catch(error => {
-      console.error('Error checking for existing user:', error);
-      throw error;
     });
 
     if (existingUser) {
@@ -36,27 +42,49 @@ export async function POST(req: Request) {
       );
     }
 
-    console.log('Creating new user...');
-    // Store user with face features
-    const user = await prisma.user.create({
+    // First, create user in Prisma
+    console.log('Creating new user with face descriptor length:', faceData.length);
+    const prismaUser = await prisma.user.create({
       data: {
         name,
         email,
         faceData: JSON.stringify(faceData)
       }
-    }).catch(error => {
-      console.error('Error creating user:', error);
-      throw error;
     });
 
-    console.log('User created successfully:', user.id);
+    // Then, store user data in Supabase
+    const { data: supabaseUser, error: supabaseError } = await supabase
+      .from('users')
+      .insert([
+        {
+          id: prismaUser.id,
+          name,
+          email,
+          face_data: faceData, // Supabase will automatically handle JSON serialization
+          created_at: new Date().toISOString()
+        }
+      ]);
+
+    if (supabaseError) {
+      console.error('Error storing user in Supabase:', supabaseError);
+      // Rollback Prisma creation if Supabase fails
+      await prisma.user.delete({
+        where: { id: prismaUser.id }
+      });
+      return NextResponse.json(
+        { error: 'Failed to store user data' },
+        { status: 500 }
+      );
+    }
+
+    console.log('User created successfully:', prismaUser.id);
     return NextResponse.json({
       success: true,
       message: 'User registered successfully',
       user: {
-        id: user.id,
-        name: user.name,
-        email: user.email
+        id: prismaUser.id,
+        name: prismaUser.name,
+        email: prismaUser.email
       }
     });
   } catch (error) {

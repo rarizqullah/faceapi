@@ -25,9 +25,11 @@ model User {
 }
 
 model Attendance {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @map("user_id")
-  user      User     @relation(fields: [userId], references: [id])
-  timestamp DateTime @default(now())
-  type      String
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  user        User     @relation(fields: [userId], references: [id])
+  timestamp   DateTime @default(now())
+  type        String
+  accuracy    Float    @default(0)
+  latencyMs   Int      @map("latency_ms") @default(0)
 }

@@ -18,7 +18,7 @@ A modern web-based attendance system using facial recognition technology, built 
 - Tailwind CSS for styling
 - React 18
 
-## Acknowledgments
+## Acknowledgment
 This project uses the following open-source libraries:
 - [face-api.js](https://github.com/justadudewhohacks/face-api.js/) - JavaScript API for face detection and recognition
 - [Next.js](https://nextjs.org/) - React framework
